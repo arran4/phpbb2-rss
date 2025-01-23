@@ -14,14 +14,14 @@ This application converts a PHPBB2 topic list page to a RSS feed. Ideally the "V
 ### Build and Install
 
 #### Install only (System level)
-Grab the latest binary here: https://github.com/arran4/phpbb2rss/releases/
+Grab the latest binary here: https://github.com/arran4/phpbb2-rss/releases/
 
 #### Install and build as user (User)
 Install go 1.23+
 
 Run `go install`:
 ```bash
-go install github.com/arran4/phpbb2rss/cmd/phpbb2rss@latest
+go install github.com/arran4/phpbb2-rss/cmd/phpbb2rss@latest
 ```
 This installs to `$HOME/go/bin` (typically; check with `go env`).
 
