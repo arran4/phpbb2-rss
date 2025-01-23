@@ -29,7 +29,7 @@ This installs to `$HOME/go/bin` (typically; check with `go env`).
 #### CLI Mode
 Generate RSS Feed:
 ```bash
-phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url https://forums.$HOST.org/search.php?search_id=last
+phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url 'https://forums.$HOST.org/search.php?search_id=last'
 ```
 
 ### Deployment
@@ -42,7 +42,7 @@ Add a cron job to run the script periodically:
    ```
 2. Add the following line:
    ```bash
-   */15 * * * * /usr/local/bin/phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url https://forums.$HOST.org/search.php?search_id=last
+   */15 * * * * /usr/local/bin/phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url 'https://forums.$HOST.org/search.php?search_id=last'
    ```
 
 #### rc.d (Cron Job user level)
@@ -53,7 +53,7 @@ Add a cron job to run the script periodically:
    ```
 2. Add the following line:
    ```bash
-   */15 * * * * ~/go/bin/phpbb2rss -output ~/public_html/rss/phpbb2rss.xml -url https://forums.$HOST.org/search.php?search_id=last
+   */15 * * * * ~/go/bin/phpbb2rss -output ~/public_html/rss/phpbb2rss.xml -url 'https://forums.$HOST.org/search.php?search_id=last'
    ```
 
 #### systemd (as root)
@@ -100,7 +100,7 @@ Description=phpbb2 to RSS Feed Creator
 
 [Service]
 Type=oneshot
-ExecStart=%h/go/bin/phpbb2rss -output %h/public_html/rss/phpbb2rss.xml -url https://forums.$HOST.org/search.php?search_id=last
+ExecStart=%h/go/bin/phpbb2rss -output %h/public_html/rss/phpbb2rss.xml -url 'https://forums.$HOST.org/search.php?search_id=last'
 ```
 
 2. Create a systemd timer file at `$HOME/.config/systemd/user/everyhour@.timer`:
