@@ -1,21 +1,12 @@
 version: 2
-project_name: abckohlerreportrss
+project_name: phpbb2rss
 builds:
   -
-    id: "abckohlerreportrss"
-    binary: "abckohlerreportrss"
-    dir: cmd/abckohlerreportrss
+    id: "phpbb2rss"
+    binary: "phpbb2rss"
+    dir: cmd/phpbb2rss
     env:
       - CGO_ENABLED=0
-#  -
-#    id: "abckohlerreportrss-cgi"
-#    binary: "abckohlerreportrss-cgi"
-#    dir: cmd/abckohlerreportrss-cgi
-#    env:
-#      - CGO_ENABLED=0
-#    goos: [linux]
-#    goarch: [amd64, arm64]
-#    flags: ["-tags=netgo", "-trimpath"]
 archives:
   -
     format_overrides:

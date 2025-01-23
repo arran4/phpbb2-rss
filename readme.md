@@ -1,7 +1,7 @@
 # README
 
 ## Overview
-This application scrapes the "Kohler Report" section of ABC News and generates an RSS feed. It supports both CLI and CGI modes.
+This application converts a PHPBB2 topic list page to a RSS feed. Ideally the "View posts from last 24 hours" page.
 
 ## Installation
 
@@ -14,14 +14,14 @@ This application scrapes the "Kohler Report" section of ABC News and generates a
 ### Build and Install
 
 #### Install only (System level)
-Grab the latest binary here: https://github.com/arran4/abc-kohler-report-rss/releases/
+Grab the latest binary here: https://github.com/arran4/phpbb2rss/releases/
 
 #### Install and build as user (User)
 Install go 1.23+
 
 Run `go install`:
 ```bash
-go install github.com/arran4/abc-kohler-report-rss/cmd/abckohlerreportrss@latest
+go install github.com/arran4/phpbb2rss/cmd/phpbb2rss@latest
 ```
 This installs to `$HOME/go/bin` (typically; check with `go env`).
 
@@ -29,16 +29,8 @@ This installs to `$HOME/go/bin` (typically; check with `go env`).
 #### CLI Mode
 Generate RSS Feed:
 ```bash
-abckohlerreportrss -output /var/www/localhost/htdocs/rss/abckohlerreportrss.xml
+phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url https://forums.$HOST.org/search.php?search_id=last
 ```
-
-#### CGI Mode
-1. Place `abckohlerreportrss-cgi` in your server's CGI directory (e.g., `/var/www/htdocs/cgi-bin/abckohlerreportrss-cgi`).
-2. Ensure it is executable:
-   ```bash
-   chmod +x /var/www/htdocs/cgi-bin/abckohlerreportrss-cgi
-   ```
-3. Access it via URL (e.g., `http://example.com/cgi-bin/abckohlerreportrss-cgi`).
 
 ### Deployment
 
@@ -50,7 +42,7 @@ Add a cron job to run the script periodically:
    ```
 2. Add the following line:
    ```bash
-   */15 * * * * /usr/local/bin/abckohlerreportrss -output /var/www/localhost/htdocs/rss/abckohlerreportrss.xml
+   */15 * * * * /usr/local/bin/phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml  -url https://forums.$HOST.org/search.php?search_id=last
    ```
 
 #### rc.d (Cron Job user level)
@@ -61,18 +53,18 @@ Add a cron job to run the script periodically:
    ```
 2. Add the following line:
    ```bash
-   */15 * * * * ~/go/bin/abckohlerreportrss -output ~/public_html/rss/abckohlerreportrss.xml
+   */15 * * * * ~/go/bin/phpbb2rss -output ~/public_html/rss/phpbb2rss.xml -url https://forums.$HOST.org/search.php?search_id=last
    ```
 
 #### systemd (as root)
-1. Create a systemd service file at `/etc/systemd/system/abckohlerreportrss.service`:
+1. Create a systemd service file at `/etc/systemd/system/phpbb2rss.service`:
 ```ini
 [Unit]
-Description=ABC News Kohler Report RSS Feed Creator
+Description=phpbb2 to RSS Feed Creator
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/abckohlerreportrss -output /var/www/localhost/htdocs/rss/abckohlerreportrss.xml
+ExecStart=/usr/bin/phpbb2rss -output /var/www/localhost/htdocs/rss/phpbb2rss.xml
 User=apache
 Group=apache
 ```
@@ -97,18 +89,18 @@ WantedBy=default.target
 3. Reload systemd and start the service:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable --now everyhour@abckohlerreportrss.timer
+   sudo systemctl enable --now everyhour@phpbb2rss.timer
    ```
 
 #### systemd (as user)
-1. Create a systemd service file at `$HOME/.config/systemd/user/abckohlerreportrss.service`:
+1. Create a systemd service file at `$HOME/.config/systemd/user/phpbb2rss.service`:
 ```ini
 [Unit]
-Description=ABC News Kohler Report RSS Feed Creator
+Description=phpbb2 to RSS Feed Creator
 
 [Service]
 Type=oneshot
-ExecStart=%h/go/bin/abckohlerreportrss -output %h/public_html/rss/abckohlerreportrss.xml
+ExecStart=%h/go/bin/phpbb2rss -output %h/public_html/rss/phpbb2rss.xml -url https://forums.$HOST.org/search.php?search_id=last
 ```
 
 2. Create a systemd timer file at `$HOME/.config/systemd/user/everyhour@.timer`:
@@ -130,7 +122,7 @@ WantedBy=default.target
 
 3. Reload systemd and start the service:
    ```bash
-   systemctl --user daemon-reload && systemctl --user enable --now everyhour@abckohlerreportrss.timer
+   systemctl --user daemon-reload && systemctl --user enable --now everyhour@phpbb2rss.timer
    ```
 
 #### Apache VirtualHost Configuration
@@ -140,7 +132,7 @@ Refer to documentation for setting up public_html directories
 
 ##### Enjoy
 
-http://localhost/~$USERNAME/rss/abckohlerreportrss.xml
+http://localhost/~$USERNAME/rss/phpbb2rss.xml
 
 ##### System
 
