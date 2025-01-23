@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -63,6 +64,11 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		pageTitle = "PHPBB2 Forum Topics" // Fallback title if none found
 	}
 
+	baseURL, err := url.Parse(forumURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse base URL: %w", err)
+	}
+
 	var items []Item
 	doc.Find(".forumline tr").Each(func(i int, s *goquery.Selection) {
 		topic := s.Find(".topictitle a").First()
@@ -73,9 +79,21 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 			return
 		}
 
-		link := fmt.Sprintf("%s/%s", forumURL, topicLink)
+		// Use url.Parse to ensure proper handling of relative URLs
+		topicURL, err := baseURL.Parse(topicLink)
+		if err != nil {
+			return
+		}
+
+		link := topicURL.String() // Full URL for the topic
+
+		// If the latest post exists, use that link instead
 		if latestPostExists {
-			link = fmt.Sprintf("%s/%s", forumURL, latestPostLink)
+			latestPostURL, err := baseURL.Parse(latestPostLink)
+			if err != nil {
+				return
+			}
+			link = latestPostURL.String() // Full URL for the latest post
 		}
 
 		pubDateRaw := strings.TrimSpace(s.Find(".postdetails").Last().Text())
