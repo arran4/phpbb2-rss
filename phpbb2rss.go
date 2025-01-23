@@ -46,6 +46,23 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		return "", fmt.Errorf("failed to parse page content: %w", err)
 	}
 
+	pageTitle := ""
+	doc.Find("a.nav:contains('Forum Index')").Each(func(i int, s *goquery.Selection) {
+		// Extract text from the link and trim "Forum Index" if present
+		pageTitle = strings.TrimSpace(s.Text())
+		if strings.HasSuffix(pageTitle, "Forum Index") {
+			pageTitle = strings.TrimSuffix(pageTitle, " Forum Index")
+		}
+	})
+
+	if pageTitle == "" {
+		pageTitle = doc.Find("title").Text()
+	}
+
+	if pageTitle == "" {
+		pageTitle = "PHPBB2 Forum Topics" // Fallback title if none found
+	}
+
 	var items []Item
 	doc.Find(".forumline tr").Each(func(i int, s *goquery.Selection) {
 		topic := s.Find(".topictitle a").First()
@@ -90,7 +107,7 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 	rss := RSS{
 		Version: "2.0",
 		Channel: Channel{
-			Title:       "PHPBB2 Forum Topics",
+			Title:       pageTitle, // Dynamically set page title
 			Link:        forumURL,
 			Description: "RSS feed for topics from a PHPBB2 forum page",
 			Items:       items,
