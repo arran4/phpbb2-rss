@@ -86,6 +86,10 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		}
 
 		link := topicURL.String() // Full URL for the topic
+		q := topicURL.Query()
+		q.Del("sid")
+		topicURL.RawQuery = q.Encode()
+		guid := topicURL.String() // Full URL for the topic
 
 		// If the latest post exists, use that link instead
 		if latestPostExists {
@@ -94,6 +98,10 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 				return
 			}
 			link = latestPostURL.String() // Full URL for the latest post
+			q := latestPostURL.Query()
+			q.Del("sid")
+			latestPostURL.RawQuery = q.Encode()
+			guid = latestPostURL.String() // Full URL for the topic
 		}
 
 		pubDateRaw := strings.TrimSpace(s.Find(".postdetails").Last().Text())
@@ -118,7 +126,7 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 			Link:        link,
 			Description: description,
 			PubDate:     parsedDate.Format(time.RFC1123),
-			GUID:        link,
+			GUID:        guid,
 		})
 	})
 
