@@ -115,7 +115,7 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		author := strings.TrimSpace(s.Find(".name a").First().Text())
 		lastCommenter := strings.TrimSpace(s.Find(".row2 a[href*='profile']").Last().Text())
 		pages := parsePageCount(s.Find("span.gensmall").Text())
-		category := strings.TrimSpace(s.Find(".forumlink").Text())
+		category := strings.TrimSpace(s.Find("a.forumlink").Text())
 
 		description := fmt.Sprintf("Category: %s\nAuthor: %s\nLast Commenter: %s\nReplies: %s\nPosts: %s\nPages: %s", category, author, lastCommenter, replies, posts, pages)
 
