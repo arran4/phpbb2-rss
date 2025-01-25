@@ -1,12 +1,14 @@
 package phpbb2rss
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -29,6 +31,7 @@ type Item struct {
 	Description string `xml:"description"`
 	PubDate     string `xml:"pubDate"`
 	GUID        string `xml:"guid"`
+	Author      string `xml:"author"`
 }
 
 func FetchAndGenerateRSS(forumURL string) (string, error) {
@@ -49,7 +52,6 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 
 	pageTitle := ""
 	doc.Find("a.nav:contains('Forum Index')").Each(func(i int, s *goquery.Selection) {
-		// Extract text from the link and trim "Forum Index" if present
 		pageTitle = strings.TrimSpace(s.Text())
 		if strings.HasSuffix(pageTitle, "Forum Index") {
 			pageTitle = strings.TrimSuffix(pageTitle, " Forum Index")
@@ -69,6 +71,18 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		return "", fmt.Errorf("failed to parse base URL: %w", err)
 	}
 
+	descTemplate := `Category: {{.Category}}
+Author: {{.Author}}
+Last Commenter: {{.LastCommenter}}
+Replies: {{.Replies}}
+Posts: {{.Posts}}
+Pages: {{.Pages}}`
+
+	tmpl, err := template.New("description").Parse(descTemplate)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse description template: %w", err)
+	}
+
 	var items []Item
 	doc.Find(".forumline tr").Each(func(i int, s *goquery.Selection) {
 		topic := s.Find(".topictitle a").First()
@@ -79,29 +93,27 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 			return
 		}
 
-		// Use url.Parse to ensure proper handling of relative URLs
 		topicURL, err := baseURL.Parse(topicLink)
 		if err != nil {
 			return
 		}
 
-		link := topicURL.String() // Full URL for the topic
+		link := topicURL.String()
 		q := topicURL.Query()
 		q.Del("sid")
 		topicURL.RawQuery = q.Encode()
-		guid := topicURL.String() // Full URL for the topic
+		guid := topicURL.String()
 
-		// If the latest post exists, use that link instead
 		if latestPostExists {
 			latestPostURL, err := baseURL.Parse(latestPostLink)
 			if err != nil {
 				return
 			}
-			link = latestPostURL.String() // Full URL for the latest post
+			link = latestPostURL.String()
 			q := latestPostURL.Query()
 			q.Del("sid")
 			latestPostURL.RawQuery = q.Encode()
-			guid = latestPostURL.String() // Full URL for the topic
+			guid = latestPostURL.String()
 		}
 
 		pubDateRaw := strings.TrimSpace(s.Find(".postdetails").Last().Text())
@@ -117,23 +129,34 @@ func FetchAndGenerateRSS(forumURL string) (string, error) {
 		pages := parsePageCount(s.Find("span.gensmall").Text())
 		category := strings.TrimSpace(s.Find("a.forumlink").Text())
 
-		description := fmt.Sprintf("Category: %s\nAuthor: %s\nLast Commenter: %s\nReplies: %s\nPosts: %s\nPages: %s", category, author, lastCommenter, replies, posts, pages)
+		var descriptionBuilder bytes.Buffer
+		if err := tmpl.Execute(&descriptionBuilder, map[string]string{
+			"Category":      category,
+			"Author":        author,
+			"LastCommenter": lastCommenter,
+			"Replies":       replies,
+			"Posts":         posts,
+			"Pages":         pages,
+		}); err != nil {
+			return
+		}
 
 		titleWithCategory := fmt.Sprintf("[%s] %s", category, title)
 
 		items = append(items, Item{
 			Title:       titleWithCategory,
 			Link:        link,
-			Description: description,
+			Description: descriptionBuilder.String(),
 			PubDate:     parsedDate.Format(time.RFC1123),
 			GUID:        guid,
+			Author:      author,
 		})
 	})
 
 	rss := RSS{
 		Version: "2.0",
 		Channel: Channel{
-			Title:       pageTitle, // Dynamically set page title
+			Title:       pageTitle,
 			Link:        forumURL,
 			Description: "RSS feed for topics from a PHPBB2 forum page",
 			Items:       items,
