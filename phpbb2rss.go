@@ -89,6 +89,9 @@ Pages: {{.Pages}}`
 		title := strings.TrimSpace(topic.Text())
 		topicLink, topicExists := topic.Attr("href")
 		latestPostLink, latestPostExists := s.Find("a:contains('View latest post')").Attr("href")
+		if !latestPostExists {
+			latestPostLink, latestPostExists = s.Find("a:has(img[alt='View latest post'])").Attr("href")
+		}
 		if !topicExists || title == "" {
 			return
 		}
@@ -116,7 +119,7 @@ Pages: {{.Pages}}`
 			guid = latestPostURL.String()
 		}
 
-		pubDateRaw := strings.TrimSpace(s.Find(".postdetails").Last().Text())
+		pubDateRaw := strings.TrimSpace(s.Find(".postdetails").Last().Contents().First().Text())
 		parsedDate, err := time.Parse("Mon Jan 02, 2006 3:04 pm", pubDateRaw)
 		if err != nil {
 			parsedDate = time.Now()
