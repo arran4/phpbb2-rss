@@ -88,6 +88,8 @@ Pages: {{.Pages}}`
 		items = parsePHPBB3(doc, baseURL, tmpl)
 	} else if isPHPBB2(doc) {
 		items = parsePHPBB2(doc, baseURL, tmpl)
+	} else {
+		return "", fmt.Errorf("unsupported or undetected PHPBB forum version")
 	}
 
 	rss := RSS{
@@ -95,7 +97,7 @@ Pages: {{.Pages}}`
 		Channel: Channel{
 			Title:       pageTitle,
 			Link:        forumURL,
-			Description: "RSS feed for topics from a PHPBB2 forum page",
+			Description: "RSS feed for topics from a PHPBB forum page",
 			Items:       items,
 		},
 	}
@@ -237,15 +239,11 @@ func parsePHPBB3(doc *goquery.Document, baseURL *url.URL, tmpl *template.Templat
 			}
 		}
 
-		pubDateRaw, hasDatetime := s.Find("dd.lastpost time").Attr("datetime")
 		var parsedDate time.Time
-		if hasDatetime {
-			parsedDate, err = time.Parse(time.RFC3339, pubDateRaw)
-			if err != nil {
-				parsedDate = time.Time{}
+		if pubDateRaw, hasDatetime := s.Find("dd.lastpost time").Attr("datetime"); hasDatetime {
+			if t, err := time.Parse(time.RFC3339, pubDateRaw); err == nil {
+				parsedDate = t
 			}
-		} else {
-			parsedDate = time.Time{}
 		}
 
 		author := strings.TrimSpace(s.Find(".list-inner .responsive-hide a.username, .list-inner .responsive-hide a.username-coloured").First().Text())
