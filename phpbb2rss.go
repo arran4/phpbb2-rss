@@ -84,6 +84,48 @@ Pages: {{.Pages}}`
 	}
 
 	var items []Item
+	if isPHPBB3(doc) {
+		items = parsePHPBB3(doc, baseURL, tmpl)
+	} else if isPHPBB2(doc) {
+		items = parsePHPBB2(doc, baseURL, tmpl)
+	}
+
+	rss := RSS{
+		Version: "2.0",
+		Channel: Channel{
+			Title:       pageTitle,
+			Link:        forumURL,
+			Description: "RSS feed for topics from a PHPBB2 forum page",
+			Items:       items,
+		},
+	}
+
+	xmlData, err := xml.MarshalIndent(rss, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal RSS feed: %w", err)
+	}
+
+	return fmt.Sprintf("%s%s", xml.Header, xmlData), nil
+}
+
+func parsePageCount(gensmallText string) string {
+	if !strings.Contains(gensmallText, "Goto page") {
+		return "1"
+	}
+	pageLinks := strings.Split(gensmallText, ",")
+	return fmt.Sprintf("%d", len(pageLinks))
+}
+
+func isPHPBB3(doc *goquery.Document) bool {
+	return doc.Find("ul.topiclist.topics").Length() > 0
+}
+
+func isPHPBB2(doc *goquery.Document) bool {
+	return doc.Find(".forumline").Length() > 0
+}
+
+func parsePHPBB2(doc *goquery.Document, baseURL *url.URL, tmpl *template.Template) []Item {
+	var items []Item
 	doc.Find(".forumline tr").Each(func(i int, s *goquery.Selection) {
 		topic := s.Find(".topictitle a").First()
 		title := strings.TrimSpace(topic.Text())
@@ -155,139 +197,117 @@ Pages: {{.Pages}}`
 			Author:      author,
 		})
 	})
+	return items
+}
 
-	if len(items) == 0 {
-		doc.Find("ul.topiclist.topics li.row").Each(func(i int, s *goquery.Selection) {
-			topic := s.Find("a.topictitle").First()
-			title := strings.TrimSpace(topic.Text())
-			topicLink, topicExists := topic.Attr("href")
-			if !topicExists || title == "" {
-				return
+func parsePHPBB3(doc *goquery.Document, baseURL *url.URL, tmpl *template.Template) []Item {
+	var items []Item
+	doc.Find("ul.topiclist.topics li.row").Each(func(i int, s *goquery.Selection) {
+		topic := s.Find("a.topictitle").First()
+		title := strings.TrimSpace(topic.Text())
+		topicLink, topicExists := topic.Attr("href")
+		if !topicExists || title == "" {
+			return
+		}
+
+		topicURL, err := baseURL.Parse(topicLink)
+		if err != nil {
+			return
+		}
+
+		link := topicURL.String()
+		q := topicURL.Query()
+		q.Del("sid")
+		topicURL.RawQuery = q.Encode()
+		guid := topicURL.String()
+
+		latestPostLink, latestPostExists := s.Find("dd.lastpost a[title='Go to last post']").Attr("href")
+		if !latestPostExists {
+			latestPostLink, latestPostExists = s.Find("dd.lastpost span a").Last().Attr("href")
+		}
+
+		if latestPostExists {
+			latestPostURL, err := baseURL.Parse(latestPostLink)
+			if err == nil {
+				link = latestPostURL.String()
+				q := latestPostURL.Query()
+				q.Del("sid")
+				latestPostURL.RawQuery = q.Encode()
+				guid = latestPostURL.String()
 			}
+		}
 
-			topicURL, err := baseURL.Parse(topicLink)
+		pubDateRaw, hasDatetime := s.Find("dd.lastpost time").Attr("datetime")
+		var parsedDate time.Time
+		if hasDatetime {
+			parsedDate, err = time.Parse(time.RFC3339, pubDateRaw)
 			if err != nil {
-				return
-			}
-
-			link := topicURL.String()
-			q := topicURL.Query()
-			q.Del("sid")
-			topicURL.RawQuery = q.Encode()
-			guid := topicURL.String()
-
-			latestPostLink, latestPostExists := s.Find("dd.lastpost a[title='Go to last post']").Attr("href")
-			if !latestPostExists {
-				latestPostLink, latestPostExists = s.Find("dd.lastpost span a").Last().Attr("href")
-			}
-
-			if latestPostExists {
-				latestPostURL, err := baseURL.Parse(latestPostLink)
-				if err == nil {
-					link = latestPostURL.String()
-					q := latestPostURL.Query()
-					q.Del("sid")
-					latestPostURL.RawQuery = q.Encode()
-					guid = latestPostURL.String()
-				}
-			}
-
-			pubDateRaw, hasDatetime := s.Find("dd.lastpost time").Attr("datetime")
-			var parsedDate time.Time
-			if hasDatetime {
-				parsedDate, err = time.Parse(time.RFC3339, pubDateRaw)
-				if err != nil {
-					parsedDate = time.Time{}
-				}
-			} else {
 				parsedDate = time.Time{}
 			}
+		} else {
+			parsedDate = time.Time{}
+		}
 
-			author := strings.TrimSpace(s.Find(".list-inner .responsive-hide a.username, .list-inner .responsive-hide a.username-coloured").First().Text())
-			if author == "" {
-				author = strings.TrimSpace(s.Find(".list-inner .responsive-hide a").First().Text())
-			}
+		author := strings.TrimSpace(s.Find(".list-inner .responsive-hide a.username, .list-inner .responsive-hide a.username-coloured").First().Text())
+		if author == "" {
+			author = strings.TrimSpace(s.Find(".list-inner .responsive-hide a").First().Text())
+		}
 
-			lastCommenter := strings.TrimSpace(s.Find("dd.lastpost a.username, dd.lastpost a.username-coloured").First().Text())
-			if lastCommenter == "" {
-				lastCommenter = strings.TrimSpace(s.Find("dd.lastpost > span > a").First().Text())
-			}
+		lastCommenter := strings.TrimSpace(s.Find("dd.lastpost a.username, dd.lastpost a.username-coloured").First().Text())
+		if lastCommenter == "" {
+			lastCommenter = strings.TrimSpace(s.Find("dd.lastpost > span > a").First().Text())
+		}
 
-			category := strings.TrimSpace(s.Find(".list-inner .responsive-hide a").Last().Text())
-			if category == "" || category == author {
-				category = strings.TrimSpace(s.Find(".responsive-show a[href*='viewforum.php']").First().Text())
-			}
+		category := strings.TrimSpace(s.Find(".list-inner .responsive-hide a").Last().Text())
+		if category == "" || category == author {
+			category = strings.TrimSpace(s.Find(".responsive-show a[href*='viewforum.php']").First().Text())
+		}
 
-			repliesNode := s.Find("dd.posts")
-			repliesNodeClone := repliesNode.Clone()
-			repliesNodeClone.Find("dfn").Remove()
-			replies := strings.TrimSpace(repliesNodeClone.Text())
+		repliesNode := s.Find("dd.posts")
+		repliesNodeClone := repliesNode.Clone()
+		repliesNodeClone.Find("dfn").Remove()
+		replies := strings.TrimSpace(repliesNodeClone.Text())
 
-			viewsNode := s.Find("dd.views")
-			viewsNodeClone := viewsNode.Clone()
-			viewsNodeClone.Find("dfn").Remove()
-			posts := strings.TrimSpace(viewsNodeClone.Text())
+		viewsNode := s.Find("dd.views")
+		viewsNodeClone := viewsNode.Clone()
+		viewsNodeClone.Find("dfn").Remove()
+		posts := strings.TrimSpace(viewsNodeClone.Text())
 
-			pages := ""
-			pagination := s.Find(".pagination")
-			if pagination.Length() > 0 {
-				lastPage := pagination.Find("ul li a.button").Last().Text()
-				if lastPage != "" {
-					pages = lastPage
-				} else {
-					pages = "1"
-				}
+		pages := ""
+		pagination := s.Find(".pagination")
+		if pagination.Length() > 0 {
+			lastPage := pagination.Find("ul li a.button").Last().Text()
+			if lastPage != "" {
+				pages = lastPage
 			} else {
 				pages = "1"
 			}
+		} else {
+			pages = "1"
+		}
 
-			var descriptionBuilder bytes.Buffer
-			if err := tmpl.Execute(&descriptionBuilder, map[string]string{
-				"Category":      category,
-				"Author":        author,
-				"LastCommenter": lastCommenter,
-				"Replies":       replies,
-				"Posts":         posts, // Using views for posts here as it aligns with old format "views" display if any
-				"Pages":         pages,
-			}); err != nil {
-				return
-			}
+		var descriptionBuilder bytes.Buffer
+		if err := tmpl.Execute(&descriptionBuilder, map[string]string{
+			"Category":      category,
+			"Author":        author,
+			"LastCommenter": lastCommenter,
+			"Replies":       replies,
+			"Posts":         posts, // Using views for posts here as it aligns with old format "views" display if any
+			"Pages":         pages,
+		}); err != nil {
+			return
+		}
 
-			titleWithCategory := fmt.Sprintf("[%s] %s", category, title)
+		titleWithCategory := fmt.Sprintf("[%s] %s", category, title)
 
-			items = append(items, Item{
-				Title:       titleWithCategory,
-				Link:        link,
-				Description: descriptionBuilder.String(),
-				PubDate:     parsedDate.Format(time.RFC1123),
-				GUID:        guid,
-				Author:      author,
-			})
+		items = append(items, Item{
+			Title:       titleWithCategory,
+			Link:        link,
+			Description: descriptionBuilder.String(),
+			PubDate:     parsedDate.Format(time.RFC1123),
+			GUID:        guid,
+			Author:      author,
 		})
-	}
-
-	rss := RSS{
-		Version: "2.0",
-		Channel: Channel{
-			Title:       pageTitle,
-			Link:        forumURL,
-			Description: "RSS feed for topics from a PHPBB2 forum page",
-			Items:       items,
-		},
-	}
-
-	xmlData, err := xml.MarshalIndent(rss, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal RSS feed: %w", err)
-	}
-
-	return fmt.Sprintf("%s%s", xml.Header, xmlData), nil
-}
-
-func parsePageCount(gensmallText string) string {
-	if !strings.Contains(gensmallText, "Goto page") {
-		return "1"
-	}
-	pageLinks := strings.Split(gensmallText, ",")
-	return fmt.Sprintf("%d", len(pageLinks))
+	})
+	return items
 }
