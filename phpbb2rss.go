@@ -197,10 +197,10 @@ Pages: {{.Pages}}`
 			if hasDatetime {
 				parsedDate, err = time.Parse(time.RFC3339, pubDateRaw)
 				if err != nil {
-					parsedDate = time.Now()
+					parsedDate = time.Time{}
 				}
 			} else {
-				parsedDate = time.Now()
+				parsedDate = time.Time{}
 			}
 
 			author := strings.TrimSpace(s.Find(".list-inner .responsive-hide a.username, .list-inner .responsive-hide a.username-coloured").First().Text())
