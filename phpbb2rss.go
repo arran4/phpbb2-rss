@@ -32,6 +32,7 @@ type Item struct {
 	PubDate     string `xml:"pubDate"`
 	GUID        string `xml:"guid"`
 	Author      string `xml:"author"`
+	Category    string `xml:"category,omitempty"`
 }
 
 func FetchAndGenerateRSS(forumURL string) (string, error) {
@@ -197,6 +198,7 @@ func parsePHPBB2(doc *goquery.Document, baseURL *url.URL, tmpl *template.Templat
 			PubDate:     parsedDate.Format(time.RFC1123),
 			GUID:        guid,
 			Author:      author,
+			Category:    category,
 		})
 	})
 	return items
@@ -305,6 +307,7 @@ func parsePHPBB3(doc *goquery.Document, baseURL *url.URL, tmpl *template.Templat
 			PubDate:     parsedDate.Format(time.RFC1123),
 			GUID:        guid,
 			Author:      author,
+			Category:    category,
 		})
 	})
 	return items

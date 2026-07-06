@@ -45,6 +45,9 @@ func TestParsePHPBB2(t *testing.T) {
 	if !strings.Contains(rss, "OldAuthor") {
 		t.Errorf("Expected RSS to contain 'OldAuthor'")
 	}
+	if !strings.Contains(rss, "<category>Old Category</category>") {
+		t.Errorf("Expected RSS to contain '<category>Old Category</category>', got: %s", rss)
+	}
 }
 
 func TestParsePHPBB3(t *testing.T) {
@@ -93,5 +96,8 @@ func TestParsePHPBB3(t *testing.T) {
 	}
 	if !strings.Contains(rss, "NewAuthor") {
 		t.Errorf("Expected RSS to contain 'NewAuthor'")
+	}
+	if !strings.Contains(rss, "<category>New Category</category>") {
+		t.Errorf("Expected RSS to contain '<category>New Category</category>', got: %s", rss)
 	}
 }
