@@ -494,7 +494,7 @@ jobs:
           gh release create "$TAG" --generate-notes $prerelease || true
         else
           gh release create "$TAG" --generate-notes $discussion_arg || \
-            gh release create "$TAG" --generate-notes
+            gh release create "$TAG" --generate-notes || true
         fi
 
   publish-draft:
