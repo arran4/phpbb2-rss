@@ -152,7 +152,7 @@ jobs:
       release_tag: ${{ steps.tag.outputs.release_tag }}
       next_version: ${{ steps.tag.outputs.next_version }}
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Setup git-tag-inc
@@ -247,7 +247,7 @@ jobs:
       needs.route.outputs.is_monthly == 'true') }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - uses: gitleaks/gitleaks-action@v2
@@ -269,12 +269,12 @@ jobs:
     if: ${{ needs.route.outputs.run_code_checks == 'true' }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v6
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v9
+      uses: golangci/golangci-lint-action@v6
       with:
         version: latest
 
@@ -290,8 +290,8 @@ jobs:
         # Add windows-latest/macos-latest only for true platform-specific behavior.
         os: [ubuntu-latest]
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v6
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
         cache: true
@@ -305,8 +305,8 @@ jobs:
       github.event.repository.private != true }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v6
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
         cache: true
@@ -319,8 +319,8 @@ jobs:
       'lint-fix' && inputs.allow_prs == true }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v6
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - name: Run go fmt
@@ -347,10 +347,10 @@ jobs:
       'lint-fix' && inputs.allow_prs == true }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
 
     - name: Setup Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
 
@@ -397,7 +397,7 @@ jobs:
     if: ${{ needs.route.outputs.run_cleanup == 'true' }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
     - env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PARENT_PR: ${{ github.event.pull_request.number }}
@@ -414,15 +414,13 @@ jobs:
     name: GoReleaser
     # In practice, include all quality gates here (for example: go-test, go-vet, go-lint, format).
     needs: [route, go-test, prepare-release-tag]
-    if: ${{ (((github.event_name == 'push') && startsWith(github.ref,
-      'refs/tags/v')) || (github.event_name == 'workflow_dispatch' &&
-      startsWith(inputs.mode, 'release-'))) }}
+    if: ${{ always() && !failure() && !cancelled() && (((github.event_name == 'push') && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-'))) }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - name: Tag commit for release (workflow_dispatch)
@@ -455,7 +453,7 @@ jobs:
       contents: write
       discussions: write
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Sync version source with highest existing tag first
@@ -536,7 +534,7 @@ jobs:
       'release-') || inputs.mode == 'release-test') }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v4
     - name: Bump to next version and open PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
