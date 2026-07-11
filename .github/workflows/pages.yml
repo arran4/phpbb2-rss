@@ -43,10 +43,14 @@ jobs:
           cat readme.html >> public/index.html
           echo '</html>' >> public/index.html
           # Generate RSS feed
-          if [ -n "${{ vars.FORUM_URL }}" ]; then
-            go run ./cmd/phpbb2rss -output public/rss/phpbb2rss.xml -url "${{ vars.FORUM_URL }}"
+          if [ -f "forums.txt" ]; then
+            while IFS=' ' read -r output_file source_url; do
+              # Skip empty lines or lines starting with #
+              [[ -z "$output_file" || "$output_file" == \#* ]] && continue
+              go run ./cmd/phpbb2rss -output "public/rss/$output_file" -url "$source_url"
+            done < forums.txt
           else
-            echo "Warning: FORUM_URL variable is not set. Skipping RSS generation."
+            echo "Warning: forums.txt file is not present. Skipping RSS generation."
           fi
 
       - name: Setup Pages
