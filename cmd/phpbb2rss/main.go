@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/arran4/phpbb2-rss"
+	phpbb2rss "github.com/arran4/phpbb2-rss"
 	"io"
 	"log"
 	"os"
