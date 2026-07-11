@@ -43,7 +43,11 @@ jobs:
           cat readme.html >> public/index.html
           echo '</html>' >> public/index.html
           # Generate RSS feed
-          go run ./cmd/phpbb2rss -output public/rss/phpbb2rss.xml
+          if [ -n "${{ vars.FORUM_URL }}" ]; then
+            go run ./cmd/phpbb2rss -output public/rss/phpbb2rss.xml -url "${{ vars.FORUM_URL }}"
+          else
+            echo "Warning: FORUM_URL variable is not set. Skipping RSS generation."
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
